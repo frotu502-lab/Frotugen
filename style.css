@@ -215,7 +215,7 @@ body {
 
 .nota-papel {
   background: var(--blanco);
-  max-width: 800px;
+  width: 800px;
   margin: 0 auto;
   border-radius: 8px;
   overflow: hidden;
