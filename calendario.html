@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frotu · Calendario de Eventos</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="calendario.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-circle">F</div>
+      <span>Frotu alquiladora</span>
+    </div>
+    <nav>
+      <a href="index.html">Nueva nota</a>
+      <a href="calendario.html" class="active">Calendario</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <div class="cal-header">
+        <h2 id="cal-titulo">Mes Año</h2>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <input type="text" id="buscador" placeholder="🔍 Buscar cliente..." style="padding:8px 14px; border:2px solid #E8E8E8; border-radius:8px; font-size:0.9rem; min-width:200px;">
+          <div class="cal-nav">
+            <button id="btn-prev" title="Mes anterior">◀</button>
+            <button id="btn-hoy" title="Hoy">Hoy</button>
+            <button id="btn-next" title="Mes siguiente">▶</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cal-grid" id="cal-grid"></div>
+
+      <div style="margin-top:16px; display:flex; gap:16px; flex-wrap:wrap; font-size:0.82rem; color:var(--gris-medio);">
+        <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;background:var(--morado-claro);border-radius:3px;border-left:3px solid var(--morado);display:inline-block;"></span> Agendado</span>
+        <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;background:var(--verde-claro);border-radius:3px;border-left:3px solid var(--verde);display:inline-block;"></span> Completado</span>
+        <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;background:var(--rojo-claro);border-radius:3px;border-left:3px solid var(--rojo);display:inline-block;"></span> Cancelado</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📋 Detalle de la nota</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-pdf-modal">📄 PDF</button>
+        <button class="btn btn-success" id="btn-completar">✓ Completar</button>
+        <button class="btn btn-ghost" id="btn-cancelar" style="color:var(--rojo);border-color:var(--rojo-claro);">✗ Cancelar</button>
+        <button class="btn btn-ghost hidden" id="btn-restaurar">↺ Restaurar</button>
+        <button class="btn btn-danger" id="btn-eliminar">🗑 Eliminar</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

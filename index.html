@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frotu · Nueva Nota de Renta</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-circle">F</div>
+      <span>Frotu alquiladora</span>
+    </div>
+    <nav>
+      <a href="index.html" class="active">Nueva nota</a>
+      <a href="calendario.html">Calendario</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <h2>📝 Nueva nota de renta</h2>
+      <form id="form-nota" onsubmit="event.preventDefault();">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="cliente">Nombre del cliente *</label>
+            <input type="text" id="cliente" placeholder="Ej. María Guadalupe Sánchez" required>
+          </div>
+          <div class="form-group">
+            <label for="producto">Producto a rentar *</label>
+            <input type="text" id="producto" placeholder="Ej. Canchita mundialista inflable" required>
+          </div>
+          <div class="form-group">
+            <label for="fechaEvento">Fecha del evento *</label>
+            <input type="date" id="fechaEvento" required>
+          </div>
+          <div class="form-group">
+            <label for="horaEvento">Hora del evento</label>
+            <input type="time" id="horaEvento">
+          </div>
+          <div class="form-group">
+            <label for="costoTotal">Costo total ($)</label>
+            <input type="number" id="costoTotal" placeholder="2500" min="0" step="1">
+          </div>
+          <div class="form-group">
+            <label for="apartado">Apartado / anticipo ($)</label>
+            <input type="number" id="apartado" placeholder="650" min="0" step="1">
+          </div>
+          <div class="form-group full-width">
+            <label for="ubicacion">Dirección del evento</label>
+            <textarea id="ubicacion" placeholder="Calle, colonia, CP, ciudad, estado..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="medidas">Medidas del producto</label>
+            <input type="text" id="medidas" placeholder="Ej. 8 x 5 x 3 m">
+          </div>
+          <div class="form-group">
+            <label for="espacioRequerido">Espacio requerido</label>
+            <input type="text" id="espacioRequerido" placeholder="Ej. 9 x 6 m">
+          </div>
+          <div class="form-group">
+            <label for="telefonoContacto">Teléfono de contacto</label>
+            <input type="tel" id="telefonoContacto" placeholder="55 0000 0000">
+          </div>
+          <div class="form-group">
+            <label for="notasExtra">Notas adicionales</label>
+            <input type="text" id="notasExtra" placeholder="Detalles especiales...">
+          </div>
+        </div>
+
+        <div style="margin-top:12px; font-size:0.9rem; color:var(--gris-medio);" id="saldo-display">
+          Saldo pendiente: $0
+        </div>
+
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" id="btn-preview">👁️ Vista previa</button>
+          <button type="button" class="btn btn-primary" id="btn-pdf">📄 Descargar PDF</button>
+          <button type="button" class="btn btn-success" id="btn-guardar">💾 Guardar y agendar</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="nota-render"></div>
+  </main>
+</body>
+</html>
