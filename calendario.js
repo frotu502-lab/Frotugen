@@ -211,7 +211,7 @@ function eliminarNota() {
 function ejecutarPDF(html, filename) {
   const temp = document.createElement('div');
   temp.innerHTML = html;
-  temp.style.cssText = 'position:fixed; top:0; left:-9999px; width:816px; z-index:-1; visibility:visible;';
+  temp.style.cssText = 'position:fixed; top:0; left:-9999px; width:800px; z-index:-1; visibility:visible; overflow:hidden;';
   document.body.appendChild(temp);
   void temp.offsetHeight;
 
@@ -220,8 +220,9 @@ function ejecutarPDF(html, filename) {
     margin: 0,
     filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, width: 816 },
-    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
   };
 
   return html2pdf().set(opt).from(el).save().then(() => {
