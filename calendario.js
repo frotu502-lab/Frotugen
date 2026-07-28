@@ -117,7 +117,8 @@ async function abrirModal(id) {
     <div class="dato-row"><span class="label">Saldo pendiente</span><span class="value" style="color:var(--rojo);">${formatMoney(n.saldoPendiente)}</span></div>
     <div class="dato-row"><span class="label">Teléfono</span><span class="value">${n.telefonoContacto || '—'}</span></div>
     <div class="dato-row"><span class="label">Ubicación</span><span class="value">${n.ubicacion || '—'}</span></div>
-    <div class="dato-row"><span class="label">Estado</span><span class="value" style="text-transform:capitalize;">${n.estado}</span></div>
+<div class="dato-row"><span class="label">Notas adicionales</span><span class="value">${n.notasExtra || '—'}</span></div>
+<div class="dato-row"><span class="label">Estado</span><span class="value" style="text-transform:capitalize;">${n.estado}</span></div>
 
     <div class="mt-2" style="border-top:1px solid #EEE; padding-top:16px;">
       <h4 style="font-size:0.85rem; color:var(--morado); margin-bottom:10px;">✏️ Reagendar</h4>
