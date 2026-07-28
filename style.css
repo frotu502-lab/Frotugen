@@ -604,5 +604,8 @@ body {
   .cal-nav { justify-content: center; }
   .cal-day-number { font-size: 0.75rem; }
   .cal-evento { font-size: 0.62rem; padding: 2px 4px; }
+  .cal-header-controls { width: 100%; flex-wrap: wrap; }
+  .cal-header-controls #buscador { min-width: 0; width: 100%; }
+  .cal-header-controls .cal-nav { width: 100%; justify-content: center; }
 }
 }
