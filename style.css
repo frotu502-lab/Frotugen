@@ -54,7 +54,6 @@ body {
 }
 
 .topbar .brand .logo-circle {
-  .topbar .brand .logo-circle {
   width: 42px; height: 42px;
   background: var(--blanco);
   border-radius: 50%;
@@ -63,7 +62,6 @@ body {
   font-size: 1.1rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   overflow: hidden;
-}
 }
 
 .topbar nav a {
