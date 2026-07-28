@@ -3,69 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frotu · Calendario de Eventos</title>
+  <title>Frotu · Nueva Nota de Renta</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="storage.js"></script>
-  <script src="calendario.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="logo-circle"><img src="logo.png" alt="Frotu" style="width:100%; height:100%; object-fit:cover;"></div>
+      <div class="logo-circle"><img src="logo.png" alt="Frotu" style="width:100%; height:100%; object-fit:contain;"></div>
       <span>Frotu alquiladora</span>
     </div>
     <nav>
-      <a href="index.html">Nueva nota</a>
-      <a href="calendario.html" class="active">Calendario</a>
+      <a href="index.html" class="active">Nueva nota</a>
+      <a href="calendario.html">Calendario</a>
     </nav>
   </header>
 
   <main class="container">
     <div class="card">
-      <div class="cal-header">
-        <h2 id="cal-titulo">Mes Año</h2>
-        <div style="display:flex; gap:12px; align-items:center;">
-          <input type="text" id="buscador" placeholder="🔍 Buscar cliente..." style="padding:8px 14px; border:2px solid #E8E8E8; border-radius:8px; font-size:0.9rem; min-width:200px;">
-          <div class="cal-nav">
-            <button id="btn-prev" title="Mes anterior">◀</button>
-            <button id="btn-hoy" title="Hoy">Hoy</button>
-            <button id="btn-next" title="Mes siguiente">▶</button>
+      <h2>📝 Nueva nota de renta</h2>
+      <form id="form-nota" onsubmit="event.preventDefault();">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="cliente">Nombre del cliente *</label>
+            <input type="text" id="cliente" placeholder="Ej. María Guadalupe Sánchez" required>
+          </div>
+          <div class="form-group">
+            <label for="producto">Producto a rentar *</label>
+            <input type="text" id="producto" placeholder="Ej. Canchita mundialista inflable" required>
+          </div>
+          <div class="form-group">
+            <label for="tipoProducto">Tipo de producto *</label>
+            <select id="tipoProducto" required>
+            <option value="inflable">Inflable</option>
+            <option value="mobiliario">Mobiliario</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fechaEvento">Fecha del evento *</label>
+            <input type="date" id="fechaEvento" required>
+          </div>
+          <div class="form-group">
+            <label for="horaEvento">Hora del evento</label>
+            <input type="time" id="horaEvento">
+          </div>
+          <div class="form-group">
+            <label for="costoTotal">Costo total ($)</label>
+            <input type="number" id="costoTotal" placeholder="2500" min="0" step="1">
+          </div>
+          <div class="form-group">
+            <label for="apartado">Apartado / anticipo ($)</label>
+            <input type="number" id="apartado" placeholder="650" min="0" step="1">
+          </div>
+          <div class="form-group full-width">
+            <label for="ubicacion">Dirección del evento</label>
+            <textarea id="ubicacion" placeholder="Calle, colonia, CP, ciudad, estado..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="medidas">Medidas del producto</label>
+            <input type="text" id="medidas" placeholder="Ej. 8 x 5 x 3 m">
+          </div>
+          <div class="form-group">
+            <label for="espacioRequerido">Espacio requerido</label>
+            <input type="text" id="espacioRequerido" placeholder="Ej. 9 x 6 m">
+          </div>
+          <div class="form-group">
+            <label for="telefonoContacto">Teléfono de contacto</label>
+            <input type="tel" id="telefonoContacto" placeholder="55 0000 0000">
+          </div>
+          <div class="form-group">
+            <label for="notasExtra">Notas adicionales</label>
+            <input type="text" id="notasExtra" placeholder="Detalles especiales...">
           </div>
         </div>
-      </div>
 
-      <div class="cal-grid" id="cal-grid"></div>
+        <div style="margin-top:12px; font-size:0.9rem; color:var(--gris-medio);" id="saldo-display">
+          Saldo pendiente: $0
+        </div>
 
-      <div style="margin-top:16px; display:flex; gap:16px; flex-wrap:wrap; font-size:0.82rem; color:var(--gris-medio);">
-        <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;background:var(--morado-claro);border-radius:3px;border-left:3px solid var(--morado);display:inline-block;"></span> Agendado</span>
-        <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;background:var(--verde-claro);border-radius:3px;border-left:3px solid var(--verde);display:inline-block;"></span> Completado</span>
-        <span style="display:flex; align-items:center; gap:6px;"><span style="width:12px;height:12px;background:var(--rojo-claro);border-radius:3px;border-left:3px solid var(--rojo);display:inline-block;"></span> Cancelado</span>
-      </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" id="btn-preview">👁️ Vista previa</button>
+          <button type="button" class="btn btn-primary" id="btn-pdf">📄 Descargar PDF</button>
+          <button type="button" class="btn btn-success" id="btn-guardar">💾 Guardar y agendar</button>
+        </div>
+      </form>
     </div>
+
+    <div id="nota-render"></div>
   </main>
-
-  <!-- Modal -->
-  <div class="modal-overlay" id="modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>📋 Detalle de la nota</h3>
-        <button class="modal-close" id="modal-close">&times;</button>
-      </div>
-      <div class="modal-body" id="modal-body"></div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="btn-pdf-modal">📄 PDF</button>
-        <button class="btn btn-success" id="btn-completar">✓ Completar</button>
-        <button class="btn btn-ghost" id="btn-cancelar" style="color:var(--rojo);border-color:var(--rojo-claro);">✗ Cancelar</button>
-        <button class="btn btn-ghost hidden" id="btn-restaurar">↺ Restaurar</button>
-        <button class="btn btn-danger" id="btn-eliminar">🗑 Eliminar</button>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
