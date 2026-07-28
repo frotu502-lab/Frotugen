@@ -10,14 +10,7 @@ let notasCache = [];
 
 function $(sel) { return document.querySelector(sel); }
 
-function obtenerNotas() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
-}
-
-function guardarNotas(notas) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notas));
-}
+obtenerNotas().then(n => console.log(n))
 
 function formatMoney(n) {
   return '$' + Number(n).toLocaleString('es-MX');
@@ -178,25 +171,19 @@ function cerrarModal() {
   notaActivaId = null;
 }
 
-function cambiarEstado(nuevoEstado) {
+async function cambiarEstado(nuevoEstado) {
   if (!notaActivaId) return;
-  const lista = obtenerNotas();
-  const idx = lista.findIndex(x => x.id === notaActivaId);
-  if (idx !== -1) {
-    lista[idx].estado = nuevoEstado;
-    guardarNotas(lista);
-    renderCalendario();
-    cerrarModal();
-    toast(`Nota marcada como ${nuevoEstado}`);
-  }
+  await actualizarNotaDB(notaActivaId, { estado: nuevoEstado });
+  await renderCalendario();
+  cerrarModal();
+  toast(`Nota marcada como ${nuevoEstado}`);
 }
 
-function eliminarNota() {
+async function eliminarNota() {
   if (!notaActivaId) return;
   if (!confirm('¿Eliminar esta nota permanentemente?')) return;
-  const lista = obtenerNotas().filter(x => x.id !== notaActivaId);
-  guardarNotas(lista);
-  renderCalendario();
+  await eliminarNotaDB(notaActivaId);
+  await renderCalendario();
   cerrarModal();
   toast('Nota eliminada');
 }
@@ -271,9 +258,9 @@ function renderReglasHTML(tipoProducto) {
   return reglas.map(r => `<div>${r.ok ? '✓' : '✗'} ${r.texto}</div>`).join('');
 }
 
-function descargarPDFDesdeModal() {
+async function descargarPDFDesdeModal() {
   if (!notaActivaId) return;
-  const notas = obtenerNotas();
+  const notas = await obtenerNotas();
   const n = notas.find(x => x.id === notaActivaId);
   if (!n) return;
 
@@ -358,10 +345,11 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btn-eliminar').addEventListener('click', eliminarNota);
   $('#btn-pdf-modal').addEventListener('click', descargarPDFDesdeModal);
 
-  $('#buscador').addEventListener('input', (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    if (!q) { renderCalendario(); return; }
-    notasCache = obtenerNotas().filter(n => n.cliente.toLowerCase().includes(q));
+  $('#buscador').addEventListener('input', async (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) { renderCalendario(); return; }
+  const todas = await obtenerNotas();
+  notasCache = todas.filter(n => n.cliente.toLowerCase().includes(q));
     $('#cal-titulo').textContent = `Resultados de "${q}"`;
     const grid = $('#cal-grid');
     grid.innerHTML = '';
