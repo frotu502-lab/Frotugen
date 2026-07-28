@@ -39,8 +39,8 @@ function toast(msg, tipo = 'success') {
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-function renderCalendario() {
-  notasCache = obtenerNotas();
+async function renderCalendario() {
+  notasCache = await obtenerNotas();
   $('#cal-titulo').textContent = `${meses[currentMonth]} ${currentYear}`;
 
   const grid = $('#cal-grid');
@@ -106,9 +106,9 @@ function irAHoy() {
 // ---------- Modal ----------
 let notaActivaId = null;
 
-function abrirModal(id) {
+async function abrirModal(id) {
   notaActivaId = id;
-  const notas = obtenerNotas();
+  const notas = await obtenerNotas();
   const n = notas.find(x => x.id === id);
   if (!n) return;
 
@@ -162,21 +162,15 @@ function abrirModal(id) {
 
   $('#modal-overlay').classList.add('active');
 
-  $('#btn-reagendar').onclick = () => {
-    const nf = $('#modal-nueva-fecha').value;
-    const nh = $('#modal-nueva-hora').value;
-    if (!nf) { toast('Selecciona una fecha válida', 'error'); return; }
-    const lista = obtenerNotas();
-    const idx = lista.findIndex(x => x.id === notaActivaId);
-    if (idx !== -1) {
-      lista[idx].fechaEvento = nf;
-      lista[idx].horaEvento = nh;
-      guardarNotas(lista);
-      renderCalendario();
-      cerrarModal();
-      toast('Evento reagendado correctamente');
-    }
-  };
+  $('#btn-reagendar').onclick = async () => {
+  const nf = $('#modal-nueva-fecha').value;
+  const nh = $('#modal-nueva-hora').value;
+  if (!nf) { toast('Selecciona una fecha válida', 'error'); return; }
+  await actualizarNotaDB(notaActivaId, { fechaEvento: nf, horaEvento: nh });
+  await renderCalendario();
+  cerrarModal();
+  toast('Evento reagendado correctamente');
+};
 }
 
 function cerrarModal() {
@@ -208,31 +202,73 @@ function eliminarNota() {
 }
 
 /* Genera PDF desde HTML en contenedor temporal fijo fuera de pantalla */
-function ejecutarPDF(html, filename) {
+async function ejecutarPDF(html, filename) {
   const temp = document.createElement('div');
   temp.innerHTML = html;
   temp.style.cssText = 'position:fixed; top:0; left:-9999px; width:800px; z-index:-1; visibility:visible; overflow:hidden;';
   document.body.appendChild(temp);
+
+  // Forzar reflow para que html2canvas capture correctamente
   void temp.offsetHeight;
 
   const el = temp.querySelector('.nota-papel');
-  const opt = {
-    margin: 0,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-    pagebreak: { mode: ['css', 'legacy'] }
-  };
 
-  return html2pdf().set(opt).from(el).save().then(() => {
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      windowWidth: 800,
+      windowHeight: el.scrollHeight
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+    // jsPDF viene incluido dentro de html2pdf.bundle.min.js
+    const JsPDFCtor = window.jspdf.jsPDF;
+    const pdf = new JsPDFCtor({
+      unit: 'px',
+      format: [canvas.width / 2, canvas.height / 2], // px reales (scale:2 -> /2)
+      hotfixes: ['px_scaling']
+    });
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 2, canvas.height / 2);
+    pdf.save(filename);
+
     document.body.removeChild(temp);
-    toast('PDF descargado');
-  }).catch((err) => {
+    toast('PDF descargado correctamente');
+  } catch (err) {
     console.error(err);
     document.body.removeChild(temp);
     toast('Error al generar PDF', 'error');
-  });
+  }
+}
+
+const REGLAS_INFLABLES = [
+  { ok: true,  texto: 'Supervisión de adultos obligatoria' },
+  { ok: false, texto: 'No usar con calzado puntiagudo' },
+  { ok: true,  texto: 'Superficie plana y libre de obstáculos' },
+  { ok: false, texto: 'No subir con alimentos ni bebidas' },
+  { ok: true,  texto: 'Desconectar en caso de lluvia o viento' },
+  { ok: false, texto: 'No exceder la capacidad máxima' },
+  { ok: true,  texto: 'Revisar anclajes antes del uso' },
+  { ok: false, texto: 'No usar objetos filosos cerca del inflable' },
+];
+
+const REGLAS_MOBILIARIO = [
+  { ok: true,  texto: 'Revisar el mobiliario al recibirlo y reportar daños' },
+  { ok: false, texto: 'No exceder el peso máximo por silla o mesa' },
+  { ok: true,  texto: 'Colocar en superficie plana y nivelada' },
+  { ok: false, texto: 'No arrastrar el mobiliario, levantarlo al moverlo' },
+  { ok: true,  texto: 'Proteger de la lluvia y la humedad' },
+  { ok: false, texto: 'No usar cerca de fuego o fuentes de calor' },
+  { ok: true,  texto: 'Devolver limpio y en las mismas condiciones' },
+  { ok: false, texto: 'No pintar, perforar ni modificar las piezas' },
+];
+
+function renderReglasHTML(tipoProducto) {
+  const reglas = tipoProducto === 'mobiliario' ? REGLAS_MOBILIARIO : REGLAS_INFLABLES;
+  return reglas.map(r => `<div>${r.ok ? '✓' : '✗'} ${r.texto}</div>`).join('');
 }
 
 function descargarPDFDesdeModal() {
@@ -247,13 +283,13 @@ function descargarPDFDesdeModal() {
     : '';
 
   const html = `
-<div class="nota-papel" style="font-family:'Segoe UI',sans-serif; background:#fff; width:800px; border-radius:8px; overflow:hidden; border:1px solid #E0E0E0;">
+<div class="nota-papel" style="font-family:'Segoe UI',system-ui,sans-serif; background:#fff; border-radius:0px; overflow:hidden; border:1px solid #E0E0E0;">
   <div style="background:linear-gradient(135deg,#7B2CBF 0%,#5A189A 100%); color:#fff; padding:28px 32px; display:flex; align-items:center; justify-content:space-between;">
     <div style="display:flex; align-items:center; gap:16px;">
-      <div style="width:64px; height:64px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; color:#7B2CBF; font-size:1.6rem;">F</div>
+      <div style="width:64px; height:64px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.2);"><img src="logo.png" alt="Frotu" style="width:100%; height:100%; object-fit:cover;"></div>
       <div><h1 style="font-size:1.6rem; font-weight:800; margin:0;">Frotu alquiladora</h1><p style="margin:0; opacity:0.9; font-size:0.85rem;">Renta de inflables y mobiliario para eventos</p></div>
     </div>
-    <div style="text-align:right;"><div style="font-size:0.75rem; text-transform:uppercase; opacity:0.8;">Folio</div><div style="font-size:2rem; font-weight:900;">${n.folio}</div></div>
+    <div style="text-align:right;"><div style="font-size:0.75rem; text-transform:uppercase; opacity:0.8;">Folio</div><div style="font-size:1.3rem; font-weight:900;">${n.folio}</div></div>
   </div>
   <div style="padding:32px;">
     <div style="margin-bottom:24px;">
@@ -288,15 +324,8 @@ function descargarPDFDesdeModal() {
     <div style="margin-bottom:24px;">
       <h3 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:#7B2CBF; margin-bottom:12px; padding-bottom:6px; border-bottom:2px solid #E0AAFF;">📋 Reglas y recomendaciones</h3>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; font-size:0.9rem; color:#666;">
-        <div>✓ Supervisión de adultos obligatoria</div>
-        <div>✗ No usar con calzado puntiagudo</div>
-        <div>✓ Superficie plana y libre de obstáculos</div>
-        <div>✗ No subir con alimentos ni bebidas</div>
-        <div>✓ Desconectar en caso de lluvia o viento</div>
-        <div>✗ No exceder la capacidad máxima</div>
-        <div>✓ Revisar anclajes antes del uso</div>
-        <div>✗ No usar objetos filosos cerca del inflable</div>
-      </div>
+  ${renderReglasHTML(n.tipoProducto)}
+</div>
     </div>
     <div style="background:#F5F5F5; padding:20px; border-radius:8px; font-size:0.88rem; color:#666; line-height:1.7;">
       <strong>Responsabilidad:</strong> El cliente se hace responsable del uso adecuado del equipo rentado. <strong>Frotu alquiladora</strong> no se hace responsable por daños personales o materiales derivados del mal uso, negligencia o incumplimiento de las reglas de seguridad. El saldo pendiente debe liquidarse <strong>antes del inicio del evento</strong>. En caso de cancelación, el apartado no es reembolsable si se cancela con menos de 48 horas de anticipación.
@@ -304,7 +333,7 @@ function descargarPDFDesdeModal() {
     ${n.notasExtra ? `<div style="margin-top:20px;"><h3 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:#7B2CBF; margin-bottom:8px;">📝 Notas adicionales</h3><p style="font-size:0.92rem; color:#666;">${n.notasExtra}</p></div>` : ''}
   </div>
   <div style="background:linear-gradient(90deg,#5A189A 0%,#7B2CBF 100%); color:#fff; padding:16px 32px; font-size:0.8rem; text-align:center; opacity:0.95;">
-    Frotu alquiladora · Nezahualcóyotl, Estado de México · Tel: 55 0000 0000 · Instagram: @frotu_alquiladora
+    Frotu alquiladora · Nezahualcóyotl, Estado de México · Tel: 55 6035 3741 · Facebook: @frotualquiladora
   </div>
 </div>`;
 

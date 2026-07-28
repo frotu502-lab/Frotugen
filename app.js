@@ -10,7 +10,7 @@ function formatMoney(n) {
   return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-function pad4(n) { return String(n).padStart(4, '0'); }
+function pad2(n) { return String(n).padStart(2, '0'); }
 
 function generarId() { return 'n_' + Date.now().toString(36); }
 
@@ -23,11 +23,17 @@ function guardarNotas(notas) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notas));
 }
 
-function siguienteFolio() {
-  const notas = obtenerNotas();
-  if (notas.length === 0) return '0001';
-  const max = Math.max(...notas.map(n => parseInt(n.folio, 10)));
-  return pad4(max + 1);
+async function siguienteFolio() {
+  const notas = await obtenerNotas();
+  const hoy = new Date();
+  const yy = pad2(hoy.getFullYear() % 100);
+  const mm = pad2(hoy.getMonth() + 1);
+  const dd = pad2(hoy.getDate());
+  const prefijo = yy + mm + dd;
+
+  const notasHoy = notas.filter(n => n.folio && n.folio.startsWith(prefijo));
+  const numero = notasHoy.length + 1;
+  return prefijo + pad2(numero);
 }
 
 function toast(msg, tipo = 'success') {
@@ -48,6 +54,7 @@ function recolectarDatos() {
   return {
     cliente: $('#cliente').value.trim(),
     producto: $('#producto').value.trim(),
+    tipoProducto: $('#tipoProducto').value,
     fechaEvento: $('#fechaEvento').value,
     horaEvento: $('#horaEvento').value,
     costoTotal: parseFloat($('#costoTotal').value) || 0,
@@ -71,18 +78,49 @@ function escaparHTML(str) {
   return div.innerHTML;
 }
 
+const REGLAS_INFLABLES = [
+  { ok: true,  texto: 'Supervisión de adultos obligatoria' },
+  { ok: false, texto: 'No usar con calzado puntiagudo' },
+  { ok: true,  texto: 'Superficie plana y libre de obstáculos' },
+  { ok: false, texto: 'No subir con alimentos ni bebidas' },
+  { ok: true,  texto: 'Desconectar en caso de lluvia o viento' },
+  { ok: false, texto: 'No exceder la capacidad máxima' },
+  { ok: true,  texto: 'Revisar anclajes antes del uso' },
+  { ok: false, texto: 'No usar objetos filosos cerca del inflable' },
+];
+
+const REGLAS_MOBILIARIO = [
+  { ok: true,  texto: 'Revisar el mobiliario al recibirlo y reportar daños' },
+  { ok: false, texto: 'No exceder el peso máximo por silla o mesa' },
+  { ok: true,  texto: 'Colocar en superficie plana y nivelada' },
+  { ok: false, texto: 'No arrastrar el mobiliario, levantarlo al moverlo' },
+  { ok: true,  texto: 'Proteger de la lluvia y la humedad' },
+  { ok: false, texto: 'No usar cerca de fuego o fuentes de calor' },
+  { ok: true,  texto: 'Devolver limpio y en las mismas condiciones' },
+  { ok: false, texto: 'No pintar, perforar ni modificar las piezas' },
+];
+
+function renderReglasHTML(tipoProducto) {
+  const reglas = tipoProducto === 'mobiliario' ? REGLAS_MOBILIARIO : REGLAS_INFLABLES;
+  return reglas.map(r => `
+    <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;">
+      <span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:${r.ok ? '#D8F3DC' : '#FFCCD5'}; color:${r.ok ? '#2D6A4F' : '#9D0208'};">${r.ok ? '✓' : '✗'}</span> ${r.texto}
+    </div>`).join('');
+}
+
 // ---------- HTML de la nota (con estilos inline críticos) ----------
 function renderNotaHTML(datos, folio) {
   const saldo = calcularSaldo(datos);
   const fechaStr = datos.fechaEvento
+  
     ? new Date(datos.fechaEvento + 'T00:00:00').toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
     : '';
 
   return `
-<div class="nota-papel" id="nota-pdf-content" style="font-family:'Segoe UI',system-ui,sans-serif; background:#fff; width:800px; border-radius:8px; overflow:hidden; border:1px solid #E0E0E0;">
+<div class="nota-papel" id="nota-pdf-content" style="font-family:'Segoe UI',system-ui,sans-serif; background:#fff; border-radius:0px; overflow:hidden; border:1px solid #E0E0E0;">
   <div class="nota-header" style="background:linear-gradient(135deg,#7B2CBF 0%,#5A189A 100%); color:#fff; padding:28px 32px; display:flex; align-items:center; justify-content:space-between;">
     <div style="display:flex; align-items:center; gap:16px;">
-      <div style="width:64px; height:64px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; color:#7B2CBF; font-size:1.6rem; box-shadow:0 4px 12px rgba(0,0,0,0.2);">F</div>
+      <div style="width:64px; height:64px; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.2);"><img src="logo.png" alt="Frotu" style="width:100%; height:100%; object-fit:cover;"></div>
       <div>
         <h1 style="font-size:1.6rem; font-weight:800; letter-spacing:-0.5px; margin:0;">Frotu alquiladora</h1>
         <p style="font-size:0.85rem; opacity:0.9; margin:0;">Renta de inflables y mobiliario para eventos</p>
@@ -90,7 +128,7 @@ function renderNotaHTML(datos, folio) {
     </div>
     <div style="text-align:right;">
       <div style="font-size:0.75rem; text-transform:uppercase; opacity:0.8; letter-spacing:1px;">Folio</div>
-      <div style="font-size:2rem; font-weight:900; letter-spacing:2px;">${folio}</div>
+      <div style="font-size:1.3rem; font-weight:900; letter-spacing:1px;">${folio}</div>
     </div>
   </div>
 
@@ -143,14 +181,7 @@ function renderNotaHTML(datos, folio) {
     <div style="margin-bottom:24px;">
       <h3 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:#7B2CBF; margin-bottom:12px; padding-bottom:6px; border-bottom:2px solid #E0AAFF;">📋 Reglas y recomendaciones</h3>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px;">
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#D8F3DC; color:#2D6A4F;">✓</span> Supervisión de adultos obligatoria</div>
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#FFCCD5; color:#9D0208;">✗</span> No usar con calzado puntiagudo</div>
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#D8F3DC; color:#2D6A4F;">✓</span> Superficie plana y libre de obstáculos</div>
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#FFCCD5; color:#9D0208;">✗</span> No subir con alimentos ni bebidas</div>
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#D8F3DC; color:#2D6A4F;">✓</span> Desconectar en caso de lluvia o viento</div>
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#FFCCD5; color:#9D0208;">✗</span> No exceder la capacidad máxima</div>
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#D8F3DC; color:#2D6A4F;">✓</span> Revisar anclajes antes del uso</div>
-        <div style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:#666;"><span style="width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; background:#FFCCD5; color:#9D0208;">✗</span> No usar objetos filosos cerca del inflable</div>
+        ${renderReglasHTML(datos.tipoProducto)}
       </div>
     </div>
 
@@ -169,7 +200,7 @@ function renderNotaHTML(datos, folio) {
   </div>
 
   <div style="background:linear-gradient(90deg,#5A189A 0%,#7B2CBF 100%); color:#fff; padding:16px 32px; font-size:0.8rem; text-align:center; opacity:0.95;">
-    Frotu alquiladora · Nezahualcóyotl, Estado de México · Tel: 55 0000 0000 · Instagram: @frotu_alquiladora
+    Frotu alquiladora · Nezahualcóyotl, Estado de México · Tel: 55 6035 3741 · Facebook: @frotualquiladora
   </div>
 </div>`;
 }
@@ -183,19 +214,19 @@ function validarBasico(d) {
   return true;
 }
 
-function mostrarVistaPrevia() {
+async function mostrarVistaPrevia() {
   const datos = recolectarDatos();
   if (!validarBasico(datos)) return;
-  const folio = siguienteFolio();
+  const folio = await siguienteFolio();
   const container = document.getElementById('nota-render');
   container.innerHTML = renderNotaHTML(datos, folio);
   container.style.display = 'block';
   container.scrollIntoView({ behavior: 'smooth' });
 }
 
-/* Genera PDF desde HTML en un contenedor temporal con ancho fijo,
-   fuera de pantalla para evitar deformaciones por viewport responsive. */
-function ejecutarPDF(html, filename) {
+/* Genera PDF desde HTML, con página de una sola pieza
+   ajustada al alto real del contenido (sin cortes de página). */
+async function ejecutarPDF(html, filename) {
   const temp = document.createElement('div');
   temp.innerHTML = html;
   temp.style.cssText = 'position:fixed; top:0; left:-9999px; width:800px; z-index:-1; visibility:visible; overflow:hidden;';
@@ -205,40 +236,52 @@ function ejecutarPDF(html, filename) {
   void temp.offsetHeight;
 
   const el = temp.querySelector('.nota-papel');
-  const opt = {
-    margin: 0,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-    pagebreak: { mode: ['css', 'legacy'] }
-  };
 
-  return html2pdf().set(opt).from(el).save().then(() => {
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      windowWidth: 800,
+      windowHeight: el.scrollHeight
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+    // jsPDF viene incluido dentro de html2pdf.bundle.min.js
+    const JsPDFCtor = window.jspdf.jsPDF;
+    const pdf = new JsPDFCtor({
+      unit: 'px',
+      format: [canvas.width / 2, canvas.height / 2], // px reales (scale:2 -> /2)
+      hotfixes: ['px_scaling']
+    });
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width / 2, canvas.height / 2);
+    pdf.save(filename);
+
     document.body.removeChild(temp);
     toast('PDF descargado correctamente');
-  }).catch((err) => {
+  } catch (err) {
     console.error(err);
     document.body.removeChild(temp);
     toast('Error al generar PDF', 'error');
-  });
+  }
 }
 
-function descargarPDF() {
+async function descargarPDF() {
   const datos = recolectarDatos();
   if (!validarBasico(datos)) return;
-  const folio = siguienteFolio();
+  const folio = await siguienteFolio();
   const html = renderNotaHTML(datos, folio);
   const filename = `nota-renta-${folio}-${datos.cliente.replace(/\s+/g,'-')}.pdf`;
   ejecutarPDF(html, filename);
 }
 
-function guardarYAgendar() {
+async function guardarYAgendar() {
   const datos = recolectarDatos();
   if (!validarBasico(datos)) return;
 
-  const notas = obtenerNotas();
-  const folio = siguienteFolio();
+  const folio = await siguienteFolio();
   const nuevaNota = {
     id: generarId(),
     folio: folio,
@@ -248,8 +291,7 @@ function guardarYAgendar() {
     creadaEl: new Date().toISOString()
   };
 
-  notas.push(nuevaNota);
-  guardarNotas(notas);
+  await guardarNotaDB(nuevaNota);
 
   toast(`Nota #${folio} agendada para el ${new Date(datos.fechaEvento + 'T00:00:00').toLocaleDateString('es-MX')}`);
   document.getElementById('form-nota').reset();
