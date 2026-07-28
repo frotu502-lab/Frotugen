@@ -404,6 +404,8 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 .cal-header h2 {
   font-size: 1.4rem;
@@ -427,7 +429,7 @@ body {
 
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 .cal-day-label {
@@ -587,4 +589,20 @@ body {
   .cal-grid { gap: 4px; }
   .cal-day { min-height: 80px; padding: 4px; }
   .topbar { flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 768px) {
+  .nota-datos-grid, .reglas-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .cal-grid { gap: 4px; }
+  .cal-day { min-height: 80px; padding: 4px; }
+  .topbar { flex-wrap: wrap; gap: 8px; }
+
+  .container { padding: 16px; }
+  .card { padding: 16px; }
+  .cal-header { flex-direction: column; align-items: stretch; }
+  .cal-header h2 { text-align: center; }
+  .cal-header input[type="text"] { width: 100%; }
+  .cal-nav { justify-content: center; }
+  .cal-day-number { font-size: 0.75rem; }
+  .cal-evento { font-size: 0.62rem; padding: 2px 4px; }
+}
 }
